@@ -1,15 +1,14 @@
-group = "com.example.cashflow_notif_queue"
+group = "com.cashflowai.cashflow_notif_queue"
 version = "1.0-SNAPSHOT"
 
 buildscript {
-    ext.kotlin_version = "2.1.0"
+    ext.kotlin_version = "2.1.0" // you can keep this for now
     repositories {
         google()
         mavenCentral()
     }
-
     dependencies {
-        classpath("com.android.tools.build:gradle:8.7.3")
+        classpath("com.android.tools.build:gradle:8.13.2")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
     }
 }
@@ -18,16 +17,45 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+
+        // ✅ Flutter publishes embedding artifacts here
+        maven { url "https://storage.googleapis.com/download.flutter.io" }
     }
 }
 
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 
-android {
-    namespace = "com.example.cashflow_notif_queue"
+// ✅ Resolve Flutter SDK path + engine hash to form the correct embedding version
+def getFlutterRoot() {
+    def props = new Properties()
+    def propsFile = rootProject.file("local.properties")
+    if (propsFile.exists()) {
+        propsFile.withInputStream { props.load(it) }
+    }
+    def flutterSdk = props.getProperty("flutter.sdk")
+    if (flutterSdk != null) return flutterSdk
 
+    def envFlutterRoot = System.getenv("FLUTTER_ROOT")
+    if (envFlutterRoot != null) return envFlutterRoot
+
+    throw new GradleException(
+            "Flutter SDK not found. Add flutter.sdk to android/local.properties " +
+                    "or set FLUTTER_ROOT environment variable."
+    )
+}
+
+def flutterRoot = getFlutterRoot()
+def engineVersionFile = file("${flutterRoot}/bin/internal/engine.version")
+def engineVersion = engineVersionFile.text.trim()
+
+android {
+    namespace = "com.cashflowai.cashflow_notif_queue"
     compileSdk = 35
+
+    defaultConfig {
+        minSdk = 21
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -35,32 +63,20 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11
+        jvmTarget = "11"
     }
 
     sourceSets {
         main.java.srcDirs += "src/main/kotlin"
         test.java.srcDirs += "src/test/kotlin"
     }
+}
 
-    defaultConfig {
-        minSdk = 21
-    }
+dependencies {
+    // ✅ This is what fixes: Unresolved reference 'io.flutter.*'
+    // Flutter embedding artifacts are published as 1.0.0-<engine_hash>
+    compileOnly "io.flutter:flutter_embedding_release:1.0.0-${engineVersion}"
 
-    dependencies {
-        testImplementation("org.jetbrains.kotlin:kotlin-test")
-        testImplementation("org.mockito:mockito-core:5.0.0")
-    }
-
-    testOptions {
-        unitTests.all {
-            useJUnitPlatform()
-
-            testLogging {
-               events "passed", "skipped", "failed", "standardOut", "standardError"
-               outputs.upToDateWhen {false}
-               showStandardStreams = true
-            }
-        }
-    }
+    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testImplementation("org.mockito:mockito-core:5.0.0")
 }
