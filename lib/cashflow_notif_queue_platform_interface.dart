@@ -32,7 +32,7 @@ abstract class CashflowNotifQueuePlatform extends PlatformInterface {
     throw UnimplementedError('peekCount() not implemented.');
   }
 
-  Future<String> drain() {
+  Future<String?> drain() {
     throw UnimplementedError('drain() not implemented.');
   }
 
