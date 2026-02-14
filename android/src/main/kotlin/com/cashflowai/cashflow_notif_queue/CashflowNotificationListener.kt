@@ -71,7 +71,7 @@ class CashflowNotificationListener : NotificationListenerService() {
                 .put("pkg", sbn.packageName ?: "")
                 .put("postTime", sbn.postTime)
                 .put("title", title)
-                .put("text", text)
+                .put("text", combined)
                 .put("amount", amount)
 
             NotifQueueStore.append(applicationContext, obj)
